@@ -1,0 +1,62 @@
+{
+    "name": "botiful",
+    "version": "0.1.0",
+    "description": "An accessible framework for making modular Discord Bots",
+    "license": "MIT",
+    "repository": "",
+    "author": "Scott Fasone",
+    "keywords": [  ],
+    "files": [ "lib" ],
+    "main": "lib/index.js",
+    "typings": "lib/index.d.ts",
+    "scripts": {
+        "clean": "rimraf lib && rimraf coverage",
+        "format": "prettier --write \"{src,__tests__}/**/*.ts\" --single-quote --trailing-comma es5",
+        "lint": "tslint -p . --force --format verbose \"src/**/*.ts\"",
+        "prepublishOnly": "npm run build",
+        "prebuild": "npm run clean && echo Using TypeScript && tsc --version",
+        "build": "tsc --pretty",
+        "watch": "npm run build -- --watch",
+        "test": "jest",
+        "start": "npm run build && node ."
+    },
+    "dependencies": {
+        "botiful": "git://github.com/scott181182/botiful#dist",
+        "discord.js": "^11.3.2"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^5.0.3",
+        "@types/jest": "^23.1.2",
+        "@types/logform": "^1.2.0",
+        "@types/node": "^10.3.6",
+        "@types/winston": "^2.3.9",
+        "coveralls": "^2.0.0",
+        "jest": "^23.2.0",
+        "prettier": "^1.5.2",
+        "rimraf": "^2.0.0",
+        "ts-jest": "^22.4.6",
+        "ts-node": "^7.0.0",
+        "tslint": "^5.10.0",
+        "tslint-config-prettier": "^1.13.0",
+        "typescript": "^2.9.2"
+    },
+    "engines": {
+        "node": ">=6.0.0"
+    },
+    "jest": {
+        "transform": {
+            ".(ts)": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+        },
+        "modulePaths": [
+            "<rootDir>/lib",
+            "<rootDir>/node_modules/@types"
+        ],
+        "testRegex": "(/test/.*|\\.(test|spec))\\.(ts|js)$",
+        "moduleFileExtensions": [
+            "ts",
+            "js",
+            "json"
+        ],
+        "testEnvironment": "node"
+    }
+}

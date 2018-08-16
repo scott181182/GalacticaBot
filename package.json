@@ -5,8 +5,10 @@
     "license": "MIT",
     "repository": "",
     "author": "Scott Fasone",
-    "keywords": [  ],
-    "files": [ "lib" ],
+    "keywords": [],
+    "files": [
+        "lib"
+    ],
     "main": "lib/index.js",
     "typings": "lib/index.d.ts",
     "scripts": {
@@ -21,7 +23,7 @@
         "start": "npm run build && node ."
     },
     "dependencies": {
-        "botiful": "git://github.com/scott181182/botiful#dist",
+        "botiful": "git://github.com/scott181182/botiful",
         "discord.js": "^11.3.2"
     },
     "devDependencies": {

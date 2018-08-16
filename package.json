@@ -1,19 +1,21 @@
 {
-    "name": "botiful",
-    "version": "0.1.0",
-    "description": "An accessible framework for making modular Discord Bots",
+    "name": "galactica-bot",
+    "version": "2.0.1",
+    "description": "Personal Discord Bot",
     "license": "MIT",
     "repository": "",
-    "author": "Scott Fasone",
-    "keywords": [],
-    "files": [
-        "lib"
+    "author": "Scott Fasone<scott181182@yahoo.com>",
+    "contributors": [
+    	"Scott Fasone",
+    	"Nolan Rosen"
     ],
+    "keywords": [  ],
+    "files": [ "lib" ],
     "main": "lib/index.js",
     "typings": "lib/index.d.ts",
     "scripts": {
         "clean": "rimraf lib && rimraf coverage",
-        "format": "prettier --write \"{src,__tests__}/**/*.ts\" --single-quote --trailing-comma es5",
+        "format": "prettier --write \"{src,test}/**/*.ts\" --single-quote --trailing-comma es5",
         "lint": "tslint -p . --force --format verbose \"src/**/*.ts\"",
         "prepublishOnly": "npm run build",
         "prebuild": "npm run clean && echo Using TypeScript && tsc --version",

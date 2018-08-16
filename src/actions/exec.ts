@@ -16,13 +16,13 @@ export const js: IAction = {
             if(result instanceof Object) { result = JSON.stringify(result); }
             else if(result.length === 0) { result = "Success!"; }
 
-            await msg.channel.send(result as string);
+            await msg.channel.send(result as string, { code: true });
         } catch(err) {
             bot.log.error(err);
-            await msg.channel.send(`An error occured trying to execute your script:\n${err}`);
+            await msg.channel.send(`An error occured trying to execute your script:\n${err}`, { code: true });
         }
     }
-}
+};
 
 export const exec: IAction = {
     name: 'exec',
@@ -35,14 +35,16 @@ export const exec: IAction = {
             exec_async(cmd, { timeout: 5000 }, async (err, stdout, stderr) => {
                 if(err) {
                     bot.log.error(err);
-                    await msg.channel.send(`An error occured trying to execute your command:\n${err}`);
+                    await msg.channel.send(`An error occurred trying to execute your command`, { code: true });
                 }
                 if(stderr) {
-                    await msg.channel.send("Error:\n" + stderr);
+                    await msg.channel.send(`Error:\n${stderr}`, { code: true });
                 }
-                await msg.channel.send(stdout);
+                if(stdout) {
+                    await msg.channel.send(stdout, { code: true });
+                }
                 resolve();
             });
         }) as Promise<void>;
     }
-}
+};

@@ -5,6 +5,7 @@
     ],
     "rules": {
         "interface-over-type-literal": false,
+        "max-classes-per-file": false,
         "member-ordering": [
             true,
             {
@@ -26,11 +27,7 @@
             }
         ],
         "no-unused-expression": true,
-        "no-unused-variable": true,
-        "object-literal-sort-keys": [
-            true,
-            "match-declaration-order"
-        ],
+        "object-literal-sort-keys": false,
         "ordered-imports": false,
         "unified-signatures": false,
         "variable-name": [

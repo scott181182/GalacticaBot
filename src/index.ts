@@ -1,5 +1,4 @@
 import { DiscordBot } from "botiful";
-import { TextChannel } from "discord.js";
 
 (async function main()
 {
@@ -9,12 +8,18 @@ import { TextChannel } from "discord.js";
         bot.log.error(err);
     });
 
-    process.on('SIGINT', () => {
-        bot.logout();
+    process.on('SIGINT', async () => {
+        bot.client.voiceConnections.forEach(connection => connection.disconnect());
+        await bot.logout();
+        bot.log.info("Exiting process...");
+        process.exit(0);
     });
 
-    bot.log.info(`${__dirname}/actions`);
+    bot.log.debug(`Action Directory: ${__dirname}/actions`);
     bot.load_actions(`${__dirname}/actions`);
+    bot.log.debug(bot.actions()
+        .map(action => action.name)
+        .join(", "));
 
     await bot.start();
 })();

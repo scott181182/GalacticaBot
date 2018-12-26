@@ -6,34 +6,34 @@
     "repository": "",
     "author": "Scott Fasone<scott181182@yahoo.com>",
     "contributors": [
-    	"Scott Fasone",
-    	"Nolan Rosen"
+        "Scott Fasone",
+        "Nolan Rosen"
     ],
-    "keywords": [  ],
-    "files": [ "lib" ],
+    "keywords": [],
+    "files": [
+        "lib"
+    ],
     "main": "lib/index.js",
     "typings": "lib/index.d.ts",
     "scripts": {
         "clean": "rimraf lib && rimraf coverage",
         "format": "prettier --write \"{src,test}/**/*.ts\" --single-quote --trailing-comma es5",
-        "lint": "tslint -p . --force --format verbose \"src/**/*.ts\"",
+        "lint": "tslint -t verbose --force \"src/**/*.ts\"",
         "prepublishOnly": "npm run build",
         "prebuild": "npm run clean && echo Using TypeScript && tsc --version",
-        "build": "tsc --pretty",
+        "build": "npm run lint && tsc --pretty",
         "watch": "npm run build -- --watch",
         "test": "jest",
         "start": "npm run build && node ."
     },
     "dependencies": {
-        "botiful": "git://github.com/scott181182/botiful",
-        "discord.js": "^11.3.2"
+        "botiful": "git://github.com/scott181182/botiful.git",
+        "discord.js": "^11.4.2",
+        "ytdl-core": "^0.28.3"
     },
     "devDependencies": {
-        "@types/fs-extra": "^5.0.3",
         "@types/jest": "^23.1.2",
-        "@types/logform": "^1.2.0",
         "@types/node": "^10.3.6",
-        "@types/winston": "^2.3.9",
         "coveralls": "^2.0.0",
         "jest": "^23.2.0",
         "prettier": "^1.5.2",

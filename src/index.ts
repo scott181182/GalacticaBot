@@ -5,7 +5,10 @@ import { DiscordBot } from "botiful";
     const bot = new DiscordBot("private/config.json");
 
     process.on('uncaughtException', (err) => {
-        bot.log.error(err);
+        bot.log.error("Uncaught exception!");
+        // tslint:disable-next-line:no-console
+        console.error(err);
+        // bot.log.error(err);
     });
 
     process.on('SIGINT', async () => {
@@ -17,6 +20,13 @@ import { DiscordBot } from "botiful";
 
     bot.log.debug(`Action Directory: ${__dirname}/actions`);
     bot.load_actions(`${__dirname}/actions`);
+
+    bot.load_middleware({
+        apply: (action) => {
+            return !action.admin
+        }
+    });
+
     bot.log.debug(bot.actions()
         .map(action => action.name)
         .join(", "));

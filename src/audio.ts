@@ -69,8 +69,10 @@ export class AudioState
 
     public async nextStream()
     {
+        console.log("Starting next stream...");
         this.block = true;
         if(this.queue.length === 0) {
+            console.log("Audio queue empty :(");
             if(this.current) {
                 this.current.connection.disconnect();
                 delete this.current;
@@ -89,9 +91,11 @@ export class AudioState
             ? this.current.connection
             : await next.vox_channel.join();
 
+        console.log("Got connection!");
         this.current = new AudioStream(next.track, next.track.getStream(), new_connection, next.msg_channel);
         setTimeout(() => {
             this.block = false;
+            console.log("Starting playback...");
             this.startPlayback();
         }, 0);
     }
@@ -103,7 +107,7 @@ export class AudioState
         if(!this.current) { return; }
         const current = this.current;
 
-        this.dispatcher = current.connection.playStream(current.stream, { volume: 0.2 })
+        this.dispatcher = current.connection.playStream(current.stream, { volume: current.track.loudness || 0.2 })
             .once("start", () => { current.channel.send(`Now Streaming: ${current.track.title}`); })
             .once("end", () => { this.nextStream(); })
             .on("error", (err) => {

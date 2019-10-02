@@ -1,10 +1,9 @@
 import { IAction } from "botiful";
-
 import * as ytdl from "ytdl-core";
 
-import { Readable } from "stream";
-
 import { AUDIO_CONTROLLER, IAudioTrack } from "../audio";
+
+/* tslint:disable:no-console */
 
 // Improvements
 // * Start time for videos
@@ -23,7 +22,8 @@ export class YouTubeTrack implements IAudioTrack
 
     public getStream()
     {
-        return ytdl(this.url, { quality: 'highestaudio', filter: 'audioonly' });
+        console.log(`Getting stream from ${this.url}`);
+        return ytdl(this.url, { /* quality: 'highestaudio', */ filter: 'audioonly' });
     }
 }
 
@@ -44,22 +44,23 @@ export const yt: IAction = {
             return ytdl.getInfo(yt_url)
                 .catch(err => {
                     bot.log.error(err);
-                    throw `Could not access the YouTube video at '${yt_url}'!`;
+                    return Promise.reject(`Could not access the YouTube video at '${yt_url}'!`);
                 })
                 .then(async (metadata) => {
+                    const loudness = args[1] ? parseFloat(args[1]) : 0.2;
                     const track = new YouTubeTrack(
                         metadata.title,
-                        metadata.video_url,
+                        yt_url,
                         parseInt(metadata.length_seconds, 10),
                         metadata.video_id,
-                        parseFloat(metadata.loudness));
+                        loudness);
                     // bot.log.debug(`${track.title} added to queue with loudness ${track.loudness}.`);
-                    bot.log.debug(`Queueing YouTube URL '${yt_url}'`);
+                    bot.log.debug(`Queueing YouTube URL '${yt_url}' with loudness ${loudness}`);
                     AUDIO_CONTROLLER.queueTrack(track, msg.member.voiceChannel, msg.channel);
                 })
                 .catch(err => {
                     bot.log.error(err);
-                    throw "There was an error playing back the YouTube stream :(";
+                    return Promise.reject("There was an error playing back the YouTube stream :(");
                 })
                 .catch((err: string) => { msg.channel.send(err); });
         } else {
@@ -72,6 +73,6 @@ export const yt: IAction = {
 
 function get_youtube_url(url: string)
 {
-    if(/[0-9a-z_\-]+/.test(url)) { return "https://www.youtube.com/watch?v=" + url; }
+    if(/^[0-9a-zA-Z_\-]+$/.test(url)) { return "https://www.youtube.com/watch?v=" + url; }
     return url;
 }

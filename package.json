@@ -27,22 +27,23 @@
         "start": "npm run build && node ."
     },
     "dependencies": {
-        "botiful": "git://github.com/scott181182/botiful.git",
-        "discord.js": "^11.4.2",
-        "ytdl-core": "^0.28.3"
+        "botiful": "https://github.com/scott181182/botiful",
+        "discord.js": "^11.5",
+        "opusscript": "^0.0.7",
+        "ytdl-core": "^0.29.7"
     },
     "devDependencies": {
-        "@types/jest": "^23.1.2",
-        "@types/node": "^10.3.6",
-        "coveralls": "^2.0.0",
-        "jest": "^23.2.0",
-        "prettier": "^1.5.2",
-        "rimraf": "^2.0.0",
-        "ts-jest": "^22.4.6",
-        "ts-node": "^7.0.0",
-        "tslint": "^5.10.0",
-        "tslint-config-prettier": "^1.13.0",
-        "typescript": "^2.9.2"
+        "@types/jest": "^24.0.18",
+        "@types/node": "^12.7.5",
+        "coveralls": "^3.0.6",
+        "jest": "^24.9.0",
+        "prettier": "^1.18.2",
+        "rimraf": "^3.0.0",
+        "ts-jest": "^24.1.0",
+        "ts-node": "^8.3.0",
+        "tslint": "^5.20.0",
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^3.6.3"
     },
     "engines": {
         "node": ">=6.0.0"

@@ -1,8 +1,38 @@
-import { DiscordBot } from "botiful";
+import { promises as fs } from "fs";
+import * as path from "path";
+
+import { DiscordBot, IAction } from "botiful";
+import { getVoiceConnections } from "@discordjs/voice";
+
+import { audioCommand } from "./actions/audio";
+import { jsCommand } from "./actions/exec";
+import { ytCommand } from "./actions/yt";
+import { Intents } from "discord.js";
+
+
+
+const CONFIG_PATH = path.resolve(__dirname, "..", "private", "config.json");
+
+
+const BOT_ACTIONS: IAction[] = [
+    audioCommand,
+    jsCommand,
+    ytCommand
+];
 
 (async function main()
 {
-    const bot = new DiscordBot("private/config.json");
+    console.log("Starting bot...");
+    const config = JSON.parse(await fs.readFile(CONFIG_PATH, "utf8"));
+    const bot = new DiscordBot({
+        ...config,
+        intents: [
+            Intents.FLAGS.GUILDS,
+            Intents.FLAGS.GUILD_MESSAGES,
+            Intents.FLAGS.DIRECT_MESSAGES,
+            Intents.FLAGS.GUILD_VOICE_STATES
+        ]
+    });
 
     process.on('uncaughtException', (err) => {
         bot.log.error("Uncaught exception!");
@@ -12,24 +42,25 @@ import { DiscordBot } from "botiful";
     });
 
     process.on('SIGINT', async () => {
-        bot.client.voiceConnections.forEach(connection => connection.disconnect());
+        const voxConnections = await getVoiceConnections();
+        voxConnections.forEach(connection => connection.disconnect());
         await bot.logout();
         bot.log.info("Exiting process...");
         process.exit(0);
     });
 
-    bot.log.debug(`Action Directory: ${__dirname}/actions`);
-    bot.load_actions(`${__dirname}/actions`);
+    bot.loadActions(BOT_ACTIONS);
 
-    bot.load_middleware({
-        apply: (action) => {
-            return !action.admin
-        }
-    });
+    // bot.loadMiddleware({
+    //     apply: (action) => {
+    //         return !action.admin
+    //     }
+    // });
 
-    bot.log.debug(bot.actions()
+    bot.log.debug(bot.getActions()
         .map(action => action.name)
         .join(", "));
 
     await bot.start();
+    console.log("Started!");
 })();

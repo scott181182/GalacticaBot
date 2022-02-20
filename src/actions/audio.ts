@@ -2,8 +2,6 @@ import { IAction } from "botiful";
 
 import { AUDIO_CONTROLLER } from "../audio";
 
-
-
 export const audio: IAction = {
     name: 'audio',
     description: 'Control playback of audio in voice channels',

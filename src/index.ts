@@ -1,4 +1,5 @@
 import { DiscordBot } from "botiful";
+import { banCheck } from './middleware/ban';
 
 (async function main()
 {
@@ -26,6 +27,8 @@ import { DiscordBot } from "botiful";
             return !action.admin
         }
     });
+
+    bot.load_middleware(banCheck);
 
     bot.log.debug(bot.actions()
         .map(action => action.name)

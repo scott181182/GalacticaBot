@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import { IMiddleware } from "botiful";
 import { DATA_DIR, DATA_FILE, IBanData } from "../actions/ban";
 
-export const banCheck: IMiddleware = {
+export const banMiddleware: IMiddleware = {
     apply: (_action, msg, _bot) => {
         return fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")
             .then((str) => JSON.parse(str) as IBanData)

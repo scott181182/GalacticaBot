@@ -26,7 +26,11 @@ export class YouTubeTrack implements IAudioTrack
     public getResource()
     {
         console.log(`Getting stream from ${this.url}`);
-        const stream = ytdl(this.url, { /* quality: 'highestaudio', */ filter: 'audioonly' });
+        const stream = ytdl(this.url, {
+            /* quality: 'highestaudio', */
+            filter: "audioonly",
+            highWaterMark: 1 << 25
+        });
         return createAudioResourceFromStream(stream, StreamType.WebmOpus);
     }
 }
@@ -52,14 +56,22 @@ export const ytCommand: IAction = {
                     return Promise.reject(`Could not access the YouTube video at '${yt_url}'!`);
                 })
                 .then(async (metadata) => {
-                    const loudness = args[1] ? parseFloat(args[1]) : 0.2;
+                    let loudness = 0.2;
+                    let background = false;
+                    if(args[1]) {
+                        if(args[1] === "background") { background = true; }
+                        else {
+                            loudness = parseFloat(args[1]);
+                            background = args[2] === "background";
+                        }
+                    }
+
                     const track = new YouTubeTrack(
                         metadata.videoDetails.title,
                         yt_url,
                         parseInt(metadata.videoDetails.lengthSeconds, 10),
                         metadata.videoDetails.videoId,
                         loudness);
-                    // bot.log.debug(`${track.title} added to queue with loudness ${track.loudness}.`);
                     bot.log.debug(`Queueing YouTube URL '${yt_url}' with loudness ${loudness}`);
                     if(!msg.member?.voice.channel) {
                         msg.channel.send("You must be in a voice channel to queue a YouTube video!");
@@ -70,7 +82,13 @@ export const ytCommand: IAction = {
                         msg.channel.send("Error: Could not find voice channel of original request.");
                         return;
                     }
-                    AUDIO_CONTROLLER.queueTrack(track, voxChannel as VoiceChannel, msg.channel as TextChannel);
+
+                    AUDIO_CONTROLLER.queueTrack(
+                        track,
+                        voxChannel as VoiceChannel,
+                        msg.channel as TextChannel,
+                        { background }
+                    );
                 })
                 .catch(err => {
                     bot.log.error(err);

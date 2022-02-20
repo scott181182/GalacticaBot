@@ -21,6 +21,7 @@ interface TrackRequest {
     track: IAudioTrack;
     voxChannel: VoiceChannel;
     msgChannel: MessageChannel;
+    background?: boolean;
 }
 export class AudioStream
 {
@@ -41,9 +42,12 @@ export class GuildAudioConnection
     private subscription?: PlayerSubscription;
     private block: boolean = false;
 
-    /** These are used to avoid fast re-printing of played tracks. */
+    /* These are used to avoid fast re-printing of played tracks. */
     private lastPlayedTitle?: string;
     private lastPlayedTime?: number;
+    /** Optional background track for the server, when the queue is depleted */
+    private backgroundTrack?: IAudioTrack;
+    private playingBackground = false;
 
 
 
@@ -55,7 +59,7 @@ export class GuildAudioConnection
             if(newState.status === AudioPlayerStatus.Playing) {
                 const timeSinceLastPrint = Date.now() - (this.lastPlayedTime || 0);
                 if(this.current) {
-                    if(this.lastPlayedTitle !== this.current.track.title || timeSinceLastPrint > 500) {
+                    if(!this.playingBackground && (this.lastPlayedTitle !== this.current.track.title || timeSinceLastPrint > 500)) {
                         this.current.msgChannel.send(`Now Streaming: ${this.current.track.title}`);
                         this.lastPlayedTitle = this.current.track.title;
                         this.lastPlayedTime = Date.now();
@@ -99,7 +103,7 @@ export class GuildAudioConnection
     public queueTrack(request: TrackRequest)
     {
         this.queue.push(request);
-        if(!this.current && !this.block) { this.nextStream(); }
+        if((!this.current && !this.block) || this.playingBackground) { this.nextStream(); }
     }
     public skipPlayback()
     {
@@ -111,6 +115,7 @@ export class GuildAudioConnection
     public stopPlayback()
     {
         this.queue = [  ];
+        if(this.playingBackground) { delete this.backgroundTrack; }
         this.nextStream();
     }
 
@@ -123,6 +128,8 @@ export class GuildAudioConnection
     {
         console.log("Starting next stream...");
         this.block = true;
+        // This will *try* to queue the background track, if it exists.
+        if(this.queue.length === 0) { this.tryQueueBackground(); }
         if(this.queue.length === 0) {
             console.log("Audio queue empty :(");
             if(this.current) {
@@ -131,6 +138,7 @@ export class GuildAudioConnection
                 delete this.subscription;
                 this.disconnect();
             }
+            this.playingBackground = false;
             this.block = false;
             return;
         }
@@ -138,6 +146,12 @@ export class GuildAudioConnection
         const next = this.queue.shift() as TrackRequest;
         this.connect(next.voxChannel.id);
 
+        if(next.background) {
+            this.backgroundTrack = next.track;
+            this.playingBackground = true;
+        } else {
+            this.playingBackground = false;
+        }
         this.current = new AudioStream(next.track, next.track.getResource(), next.voxChannel, next.msgChannel);
         setTimeout(() => {
             this.block = false;
@@ -146,6 +160,16 @@ export class GuildAudioConnection
     }
 
 
+    private tryQueueBackground() {
+        if(!this.backgroundTrack || !this.current) { return; }
+        console.log(`Queueing background: ${this.backgroundTrack.title}`);
+        this.queue.push({
+            track: this.backgroundTrack,
+            voxChannel: this.current.voxChannel,
+            msgChannel: this.current.msgChannel,
+            background: true
+        });
+    }
 
     private startPlayback()
     {
@@ -199,6 +223,9 @@ export class GuildAudioConnection
     }
 }
 
+export interface QueueTrackOptions {
+    background?: boolean;
+}
 export class AudioController
 {
     private connections: Collection<Snowflake, GuildAudioConnection> = new Collection();
@@ -211,13 +238,13 @@ export class AudioController
             return "There is no active audio state for your guild. Queue some songs!";
         }
     }
-    public queueTrack(track: IAudioTrack, vox_channel: VoiceChannel, msg_channel: MessageChannel)
+    public queueTrack(track: IAudioTrack, vox_channel: VoiceChannel, msg_channel: MessageChannel, options: QueueTrackOptions)
     {
         const gid = vox_channel.guild.id;
         if(!this.connections.has(gid)) {
             this.connections.set(gid, new GuildAudioConnection(vox_channel.guild));
         }
-        (this.connections.get(gid) as GuildAudioConnection).queueTrack({ track, voxChannel: vox_channel, msgChannel: msg_channel });
+        (this.connections.get(gid) as GuildAudioConnection).queueTrack({ track, voxChannel: vox_channel, msgChannel: msg_channel, background: options.background });
     }
     public skipPlayback(gid: Snowflake)
     {

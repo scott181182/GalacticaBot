@@ -20,6 +20,13 @@ export const ban: IAction = {
         "Prevents all mentioned users from being able to use GalacticaBot",
     man: "!ban @UserName (@AndSoOn...)",
     admin: true,
+    init: (bot) => {
+        fs.open(`${DATA_DIR}/${DATA_FILE}`, "wx").catch((err) => {
+            bot.log.error(
+                `Failed to create data file for the ban command: ${err}`
+            );
+        });
+    },
     run: async (_args, msg, _bot) => {
         fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")
             .then((strObj) => JSON.parse(strObj) as IBanData)
@@ -61,7 +68,7 @@ export const unban: IAction = {
     man: "!unban @UserName (@AndSoOn...)",
     admin: true,
     run: async (_args, msg, _bot) => {
-      fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")
+        fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")
             .then((strObj) => JSON.parse(strObj) as IBanData)
             // Dedup the to-be banned users by those already in the ban list
             .then((data) => {
@@ -71,15 +78,15 @@ export const unban: IAction = {
                     data.bans.splice(index, 1);
                 }
                 return data;
-              })
-              // Write banlist to disk
-              .then((data) => {
-                  let serData = JSON.stringify(data);
-                  fs.writeFile(`${DATA_DIR}/${DATA_FILE}`, serData);
-              })
-              .catch((err) => {
-                  //TODO: Change to use bot.log
-                  console.error(`Ban action failed: ${err}`);
-              });
+            })
+            // Write banlist to disk
+            .then((data) => {
+                let serData = JSON.stringify(data);
+                fs.writeFile(`${DATA_DIR}/${DATA_FILE}`, serData);
+            })
+            .catch((err) => {
+                //TODO: Change to use bot.log
+                console.error(`Ban action failed: ${err}`);
+            });
     },
 };

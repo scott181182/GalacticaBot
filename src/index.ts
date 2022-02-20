@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import * as path from "path";
 
-import { DiscordBot, IAction } from "botiful";
+import { DiscordBot, IAction, IMiddleware } from "botiful";
 import { getVoiceConnections } from "@discordjs/voice";
 
 import { audioCommand } from "./actions/audio";
@@ -9,7 +9,7 @@ import { jsCommand } from "./actions/exec";
 import { ytCommand } from "./actions/yt";
 import { Intents } from "discord.js";
 
-import { banCheck } from "./middleware/ban";
+import { banMiddleware } from "./middleware/ban";
 
 
 
@@ -20,6 +20,10 @@ const BOT_ACTIONS: IAction[] = [
     audioCommand,
     jsCommand,
     ytCommand
+];
+
+const BOT_MIDDLEWARE: IMiddleware[] = [
+    banMiddleware
 ];
 
 (async function main()
@@ -52,14 +56,7 @@ const BOT_ACTIONS: IAction[] = [
     });
 
     bot.loadActions(BOT_ACTIONS);
-
-    // bot.loadMiddleware({
-    //     apply: (action) => {
-    //         return !action.admin
-    //     }
-    // });
-
-    bot.loadMiddleware(banCheck);
+    bot.loadMiddleware(BOT_MIDDLEWARE);
 
     bot.log.debug(bot.getActions()
         .map(action => action.name)

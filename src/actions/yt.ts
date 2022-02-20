@@ -1,9 +1,12 @@
+import { StreamType } from "@discordjs/voice";
 import { IAction } from "botiful";
-import * as ytdl from "ytdl-core";
+import { TextChannel, VoiceChannel } from "discord.js";
+import ytdl from "ytdl-core";
 
 import { AUDIO_CONTROLLER, IAudioTrack } from "../audio";
+import { createAudioResourceFromStream } from "../util";
 
-/* tslint:disable:no-console */
+
 
 // Improvements
 // * Start time for videos
@@ -20,15 +23,16 @@ export class YouTubeTrack implements IAudioTrack
         public loudness: number
     ) {  }
 
-    public getStream()
+    public getResource()
     {
         console.log(`Getting stream from ${this.url}`);
-        return ytdl(this.url, { /* quality: 'highestaudio', */ filter: 'audioonly' });
+        const stream = ytdl(this.url, { /* quality: 'highestaudio', */ filter: 'audioonly' });
+        return createAudioResourceFromStream(stream, StreamType.WebmOpus);
     }
 }
 
 
-export const yt: IAction = {
+export const ytCommand: IAction = {
     name: 'yt',
     description: 'Play and control YouTube audio on a voice channel',
     admin: false,
@@ -36,7 +40,8 @@ export const yt: IAction = {
     run: (args, msg, bot) => {
         if (args[0])
         {
-            if(!msg.member.voiceChannel) {
+            const voxChannelId = msg.member?.voice.channelId;
+            if(!voxChannelId) {
                 msg.channel.send("You must be in a voice channel to queue a YouTube video!");
                 return;
             }
@@ -49,14 +54,23 @@ export const yt: IAction = {
                 .then(async (metadata) => {
                     const loudness = args[1] ? parseFloat(args[1]) : 0.2;
                     const track = new YouTubeTrack(
-                        metadata.title,
+                        metadata.videoDetails.title,
                         yt_url,
-                        parseInt(metadata.length_seconds, 10),
-                        metadata.video_id,
+                        parseInt(metadata.videoDetails.lengthSeconds, 10),
+                        metadata.videoDetails.videoId,
                         loudness);
                     // bot.log.debug(`${track.title} added to queue with loudness ${track.loudness}.`);
                     bot.log.debug(`Queueing YouTube URL '${yt_url}' with loudness ${loudness}`);
-                    AUDIO_CONTROLLER.queueTrack(track, msg.member.voiceChannel, msg.channel);
+                    if(!msg.member?.voice.channel) {
+                        msg.channel.send("You must be in a voice channel to queue a YouTube video!");
+                        return;
+                    }
+                    const voxChannel = msg.guild?.channels.cache.get(voxChannelId);
+                    if(!voxChannel) {
+                        msg.channel.send("Error: Could not find voice channel of original request.");
+                        return;
+                    }
+                    AUDIO_CONTROLLER.queueTrack(track, voxChannel as VoiceChannel, msg.channel as TextChannel);
                 })
                 .catch(err => {
                     bot.log.error(err);

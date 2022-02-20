@@ -1,21 +1,23 @@
 {
-  "compilerOptions": {
-    "declaration": true,
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "lib": [ "esnext" ],
-    "target": "es6",
-    "strict": true,
-    "outDir": "./lib",
-    "preserveConstEnums": true,
-    "removeComments": true,
-    "inlineSourceMap": true,
-    "typeRoots": [
-      "./node_modules/@types"
+    "compilerOptions": {
+        "declaration": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "lib": [
+            "esnext"
+        ],
+        "target": "ES2020",
+        "strict": true,
+        "outDir": "./lib",
+        "preserveConstEnums": true,
+        "removeComments": true,
+        "inlineSourceMap": true,
+        "esModuleInterop": true
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
     ]
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [ "node_modules" ]
 }

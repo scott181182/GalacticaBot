@@ -1,8 +1,9 @@
 import { Readable } from "stream";
 
-import { Collection, Snowflake, StreamDispatcher, VoiceChannel, VoiceConnection } from "discord.js";
+import { Collection, Guild, Snowflake, VoiceChannel } from "discord.js";
+import { createAudioPlayer, createAudioResource, joinVoiceChannel, VoiceConnection, PlayerSubscription, AudioResource, VoiceConnectionStatus, AudioPlayerStatus } from "@discordjs/voice";
 
-import { MessageChannel } from "./util";
+import { AudioResourceWithVolume, MessageChannel } from "./util";
 
 /* tslint:disable:no-console */
 
@@ -14,25 +15,58 @@ export interface IAudioTrack
     id:       string;
     loudness: number;
 
-    getStream(): Readable;
+    getResource(): AudioResourceWithVolume;
 }
-type TrackRequest = { track: IAudioTrack, vox_channel: VoiceChannel, msg_channel: MessageChannel };
+interface TrackRequest {
+    track: IAudioTrack;
+    voxChannel: VoiceChannel;
+    msgChannel: MessageChannel;
+}
 export class AudioStream
 {
     public constructor(
         public track:      IAudioTrack,
-        public stream:     Readable,
-        public connection: VoiceConnection,
-        public channel:    MessageChannel
+        public resource:   AudioResourceWithVolume,
+        public voxChannel: VoiceChannel,
+        public msgChannel: MessageChannel
     ) {  }
 }
 
-export class AudioState
+export class GuildAudioConnection
 {
     private queue:    TrackRequest[] = [  ];
     private current?: AudioStream;
-    private dispatcher?: StreamDispatcher;
+    private connection?: VoiceConnection;
+    private player = createAudioPlayer();
+    private subscription?: PlayerSubscription;
     private block: boolean = false;
+
+    public constructor(public readonly guild: Guild) {
+        this.player = createAudioPlayer();
+
+        this.player.on("stateChange", (oldState, newState) => {
+            console.log(`[audio-state] ${oldState.status} -> ${newState.status}`)
+            if(newState.status === AudioPlayerStatus.Playing) {
+                if(this.current) {
+                    this.current.msgChannel.send(`Now Streaming: ${this.current.track.title}`);
+                } else {
+                    console.error(`AudioPlayer(${this.guild.id}) now playing, but no current stream!`);
+                }
+            } else if(newState.status === AudioPlayerStatus.Idle) {
+                this.nextStream();
+            }
+        });
+        this.player.on("error", (err) => {
+            this.disconnect();
+            console.log(err);
+            if(this.current) {
+                this.current.msgChannel.send(`There was an error streaming to ${this.current.voxChannel.name}`);
+                console.log(`There was an error streaming to ${this.current.voxChannel.name}`, { queue: this.queue });
+            } else {
+                console.log("There was an error streaming to a non-current audio channel", { queue: this.queue });
+            }
+        });
+    }
 
     public stringifyQueue()
     {
@@ -58,8 +92,8 @@ export class AudioState
     }
     public skipPlayback()
     {
-        if(!this.dispatcher) { return; }
-        this.dispatcher.end();
+        if(!this.current) { return; }
+        this.player.stop();
     }
     public stopPlayback()
     {
@@ -74,28 +108,20 @@ export class AudioState
         if(this.queue.length === 0) {
             console.log("Audio queue empty :(");
             if(this.current) {
-                this.current.connection.disconnect();
                 delete this.current;
-                delete this.dispatcher;
+                delete this.subscription;
+                this.disconnect();
             }
             this.block = false;
             return;
         }
 
         const next = this.queue.shift() as TrackRequest;
-        if(this.current && this.current.connection.channel.id !== next.vox_channel.id) {
-            console.log("Switching audio channels!");
-            this.current.connection.disconnect();
-        }
-        const new_connection = (this.current && this.current.connection.channel.id === next.vox_channel.id)
-            ? this.current.connection
-            : await next.vox_channel.join();
+        this.connect(next.voxChannel.id);
 
-        console.log("Got connection!");
-        this.current = new AudioStream(next.track, next.track.getStream(), new_connection, next.msg_channel);
+        this.current = new AudioStream(next.track, next.track.getResource(), next.voxChannel, next.msgChannel);
         setTimeout(() => {
             this.block = false;
-            console.log("Starting playback...");
             this.startPlayback();
         }, 0);
     }
@@ -104,33 +130,55 @@ export class AudioState
 
     private startPlayback()
     {
-        if(!this.current) { return; }
+        if(!this.current || !this.connection) { return; }
         const current = this.current;
 
-        this.dispatcher = current.connection.playStream(current.stream, { volume: current.track.loudness || 0.2 })
-            .once("start", () => { current.channel.send(`Now Streaming: ${current.track.title}`); })
-            .once("end", () => { this.nextStream(); })
-            .on("error", (err) => {
-                current.channel.send(`There was an error streaming to ${current.connection.channel.name}`);
-                console.log(`There was an error streaming to ${current.connection.channel.name}`, { queue: this.queue });
-                console.log(err);
-                current.connection.disconnect();
-            })
-            .on("disconnect", () => {
-                current.stream.destroy();
-                this.queue = [  ];
-                console.log("YouTube read disconnect event, flushed queue.");
+        current.resource.volume.setVolume(current.track.loudness || 0.2);
+        this.player.play(current.resource);
+    }
+    private connect(channelId: string) {
+        if(!this.connection) {
+            this.connection = joinVoiceChannel({
+                guildId: this.guild.id,
+                channelId,
+                adapterCreator: this.guild.voiceAdapterCreator,
+                selfDeaf: true,
+                selfMute: false
             });
+
+            this.subscription = this.connection.subscribe(this.player);
+            this.connection?.on("stateChange", (_oldState, newState) => {
+                if(newState.status === VoiceConnectionStatus.Disconnected) {
+                    this.player.stop();
+                    this.queue = [  ];
+                    console.log("AudioConnection disconnect event, flushed queue.");
+                }
+            });
+        } else if(this.current && this.current.voxChannel.id !== channelId) {
+            console.log("Switching audio channels!");
+            this.disconnect();
+            this.connection.rejoin({
+                channelId,
+                selfDeaf: true,
+                selfMute: false
+            });
+        }
+    }
+    private disconnect() {
+        if(this.connection && this.connection.state.status === VoiceConnectionStatus.Ready) {
+            this.connection.disconnect();
+        }
     }
 }
+
 export class AudioController
 {
-    private connections: Collection<Snowflake, AudioState> = new Collection();
+    private connections: Collection<Snowflake, GuildAudioConnection> = new Collection();
 
     public getQueue(gid: Snowflake)
     {
         if(this.connections.has(gid)) {
-            return (this.connections.get(gid) as AudioState).stringifyQueue();
+            return (this.connections.get(gid) as GuildAudioConnection).stringifyQueue();
         } else {
             return "There is no active audio state for your guild. Queue some songs!";
         }
@@ -139,14 +187,14 @@ export class AudioController
     {
         const gid = vox_channel.guild.id;
         if(!this.connections.has(gid)) {
-            this.connections.set(gid, new AudioState());
+            this.connections.set(gid, new GuildAudioConnection(vox_channel.guild));
         }
-        (this.connections.get(gid) as AudioState).queueTrack({ track, vox_channel, msg_channel });
+        (this.connections.get(gid) as GuildAudioConnection).queueTrack({ track, voxChannel: vox_channel, msgChannel: msg_channel });
     }
     public skipPlayback(gid: Snowflake)
     {
         if(this.connections.has(gid)) {
-            (this.connections.get(gid) as AudioState).skipPlayback();
+            (this.connections.get(gid) as GuildAudioConnection).skipPlayback();
         } else {
             return "There is no active audio state for your guild. Queue some songs!";
         }
@@ -154,7 +202,7 @@ export class AudioController
     public stopPlayback(gid: Snowflake)
     {
         if(this.connections.has(gid)) {
-            (this.connections.get(gid) as AudioState).stopPlayback();
+            (this.connections.get(gid) as GuildAudioConnection).stopPlayback();
         } else {
             return "There is no active audio state for your guild. Queue some songs!";
         }

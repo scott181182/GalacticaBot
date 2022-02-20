@@ -2,12 +2,13 @@ import { promises as fs } from "fs";
 import * as path from "path";
 
 import { DiscordBot, IAction, IMiddleware } from "botiful";
+import { Intents } from "discord.js";
 import { getVoiceConnections } from "@discordjs/voice";
 
 import { audioCommand } from "./actions/audio";
+import { banCommand, unbanCommand } from "./actions/ban";
 import { jsCommand } from "./actions/exec";
 import { ytCommand } from "./actions/yt";
-import { Intents } from "discord.js";
 
 import { banMiddleware } from "./middleware/ban";
 
@@ -19,7 +20,9 @@ const CONFIG_PATH = path.resolve(__dirname, "..", "private", "config.json");
 const BOT_ACTIONS: IAction[] = [
     audioCommand,
     jsCommand,
-    ytCommand
+    ytCommand,
+    banCommand,
+    unbanCommand
 ];
 
 const BOT_MIDDLEWARE: IMiddleware[] = [

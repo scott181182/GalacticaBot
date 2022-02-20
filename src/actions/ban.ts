@@ -14,7 +14,7 @@ export interface IBanData {
     ];
 }
 
-export const ban: IAction = {
+export const banCommand: IAction = {
     name: "ban",
     description:
         "Prevents all mentioned users from being able to use GalacticaBot",
@@ -55,7 +55,7 @@ export const ban: IAction = {
     },
 };
 
-export const unban: IAction = {
+export const unbanCommand: IAction = {
     name: "unban",
     description: "Allows any previously banned user to use GalacticaBot",
     man: "!unban @UserName (@AndSoOn...)",

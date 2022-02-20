@@ -41,14 +41,25 @@ export class GuildAudioConnection
     private subscription?: PlayerSubscription;
     private block: boolean = false;
 
+    /** These are used to avoid fast re-printing of played tracks. */
+    private lastPlayedTitle?: string;
+    private lastPlayedTime?: number;
+
+
+
     public constructor(public readonly guild: Guild) {
         this.player = createAudioPlayer();
 
         this.player.on("stateChange", (oldState, newState) => {
             console.log(`[audio-state] ${oldState.status} -> ${newState.status}`)
             if(newState.status === AudioPlayerStatus.Playing) {
+                const timeSinceLastPrint = Date.now() - (this.lastPlayedTime || 0);
                 if(this.current) {
-                    this.current.msgChannel.send(`Now Streaming: ${this.current.track.title}`);
+                    if(this.lastPlayedTitle !== this.current.track.title || timeSinceLastPrint > 500) {
+                        this.current.msgChannel.send(`Now Streaming: ${this.current.track.title}`);
+                        this.lastPlayedTitle = this.current.track.title;
+                        this.lastPlayedTime = Date.now();
+                    }
                 } else {
                     console.error(`AudioPlayer(${this.guild.id}) now playing, but no current stream!`);
                 }

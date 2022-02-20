@@ -41,14 +41,25 @@ export class GuildAudioConnection
     private subscription?: PlayerSubscription;
     private block: boolean = false;
 
+    /** These are used to avoid fast re-printing of played tracks. */
+    private lastPlayedTitle?: string;
+    private lastPlayedTime?: number;
+
+
+
     public constructor(public readonly guild: Guild) {
         this.player = createAudioPlayer();
 
         this.player.on("stateChange", (oldState, newState) => {
             console.log(`[audio-state] ${oldState.status} -> ${newState.status}`)
             if(newState.status === AudioPlayerStatus.Playing) {
+                const timeSinceLastPrint = Date.now() - (this.lastPlayedTime || 0);
                 if(this.current) {
-                    this.current.msgChannel.send(`Now Streaming: ${this.current.track.title}`);
+                    if(this.lastPlayedTitle !== this.current.track.title || timeSinceLastPrint > 500) {
+                        this.current.msgChannel.send(`Now Streaming: ${this.current.track.title}`);
+                        this.lastPlayedTitle = this.current.track.title;
+                        this.lastPlayedTime = Date.now();
+                    }
                 } else {
                     console.error(`AudioPlayer(${this.guild.id}) now playing, but no current stream!`);
                 }
@@ -95,10 +106,17 @@ export class GuildAudioConnection
         if(!this.current) { return; }
         this.player.stop();
     }
+    public pausePlayback()  { this.player.pause();   }
+    public resumePlayback() { this.player.unpause(); }
     public stopPlayback()
     {
         this.queue = [  ];
         this.nextStream();
+    }
+
+    public setVolume(volume: number) {
+        if(!this.current) { return; }
+        this.current.resource.volume.setVolume(volume);
     }
 
     public async nextStream()
@@ -109,6 +127,7 @@ export class GuildAudioConnection
             console.log("Audio queue empty :(");
             if(this.current) {
                 delete this.current;
+                this.subscription?.unsubscribe();
                 delete this.subscription;
                 this.disconnect();
             }
@@ -146,13 +165,19 @@ export class GuildAudioConnection
                 selfMute: false
             });
 
-            this.subscription = this.connection.subscribe(this.player);
             this.connection?.on("stateChange", (_oldState, newState) => {
                 if(newState.status === VoiceConnectionStatus.Disconnected) {
                     this.player.stop();
                     this.queue = [  ];
                     console.log("AudioConnection disconnect event, flushed queue.");
                 }
+            });
+        } else if(this.connection.state.status === VoiceConnectionStatus.Disconnected) {
+            console.log("Rejoining audio channel!");
+            this.connection.rejoin({
+                channelId,
+                selfDeaf: true,
+                selfMute: false
             });
         } else if(this.current && this.current.voxChannel.id !== channelId) {
             console.log("Switching audio channels!");
@@ -162,6 +187,9 @@ export class GuildAudioConnection
                 selfDeaf: true,
                 selfMute: false
             });
+        }
+        if(!this.subscription) {
+            this.subscription = this.connection.subscribe(this.player);
         }
     }
     private disconnect() {
@@ -199,12 +227,31 @@ export class AudioController
             return "There is no active audio state for your guild. Queue some songs!";
         }
     }
-    public stopPlayback(gid: Snowflake)
-    {
+    public pausePlayback(gid: Snowflake) {
+        try { this.getGuildConnection(gid).pausePlayback(); }
+        catch(err) { return "There is no active audio state for your guild. Queue some songs!"; }
+    }
+    public resumePlayback(gid: Snowflake) {
+        try { this.getGuildConnection(gid).resumePlayback(); }
+        catch(err) { return "There is no active audio state for your guild. Queue some songs!"; }
+    }
+    public stopPlayback(gid: Snowflake) {
+        try { this.getGuildConnection(gid).stopPlayback(); }
+        catch(err) { return "There is no active audio state for your guild. Queue some songs!"; }
+    }
+
+    public setVolume(gid: Snowflake, volume: number) {
+        try { this.getGuildConnection(gid).setVolume(volume); }
+        catch(err) { return "There is no active audio state for your guild. Queue some songs!"; }
+    }
+
+
+
+    private getGuildConnection(gid: Snowflake) {
         if(this.connections.has(gid)) {
-            (this.connections.get(gid) as GuildAudioConnection).stopPlayback();
+            return this.connections.get(gid) as GuildAudioConnection;
         } else {
-            return "There is no active audio state for your guild. Queue some songs!";
+            throw new Error(`Could not find GuildAudioConnection for guild '${gid}'`);
         }
     }
 }

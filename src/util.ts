@@ -2,7 +2,7 @@ import type { Readable } from "stream";
 
 import type {
     Client, GuildMember, VoiceChannel,
-    TextChannel, DMChannel, PartialGroupDMChannel
+    TextChannel, DMChannel
 } from "discord.js";
 import { AudioResource, createAudioResource, getVoiceConnection, joinVoiceChannel, StreamType, VoiceConnection } from "@discordjs/voice";
 import type { VolumeTransformer } from "prism-media";

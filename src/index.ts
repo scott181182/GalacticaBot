@@ -65,6 +65,10 @@ const BOT_MIDDLEWARE: IMiddleware[] = [
         .map(action => action.name)
         .join(", "));
 
+    // bot.log.debug(bot.getMiddleware()
+    //     .map(mw => mw.name)
+    //     .join(", "));
+
     await bot.start();
     console.log("Started!");
 })();

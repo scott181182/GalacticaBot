@@ -4,14 +4,18 @@ import { IAction } from "botiful";
 export const DATA_DIR = process.cwd() + "/data";
 export const DATA_FILE = "banned.json";
 
-export interface IBanData {
-    bans: [
-        {
-            id: string;
-            authorizedBy: string;
-            date: number;
-        }
-    ];
+export type BanRecord = {
+    id: string;
+    authorizedBy: string;
+    date: number;
+};
+
+export class BanData {
+    bans: Array<BanRecord> = [];
+
+    constructor() {
+      return { bans: [] }
+    }    
 }
 
 export const banCommand: IAction = {
@@ -21,15 +25,25 @@ export const banCommand: IAction = {
     man: "!ban @UserName (@AndSoOn...)",
     admin: true,
     init: (bot) => {
-        fs.open(`${DATA_DIR}/${DATA_FILE}`, "wx").catch((err) => {
-            bot.log.error(
-                `Failed to create data file for the ban command: ${err}`
-            );
-        });
+        fs.open(`${DATA_DIR}/${DATA_FILE}`, "a")
+            .then((fd) => fd.close())
+            .catch((err) => {
+                bot.log.error(
+                    `Failed to create data file for the ban command: ${err}`
+                );
+            });
     },
-    run: async (_args, msg, _bot) => {
+    run: async (_args, msg, bot) => {
         fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")
-            .then((strObj) => JSON.parse(strObj) as IBanData)
+            .then((strObj) => {
+                if (strObj.length === 0) {
+                    return new BanData();
+                } else {
+                    let banData = JSON.parse(strObj) as BanData;
+                    if (!banData.bans) banData.bans = []
+                    return banData
+                }
+            })
             // Dedup the to-be banned users by those already in the ban list
             .then((data) => {
                 let users = msg.mentions.users;
@@ -56,8 +70,7 @@ export const banCommand: IAction = {
                 fs.writeFile(`${DATA_DIR}/${DATA_FILE}`, serData);
             })
             .catch((err) => {
-                //TODO: Change to use bot.log
-                console.error(`Ban action failed: ${err}`);
+                bot.log.error(`Ban action failed: ${err}`);
             });
     },
 };
@@ -67,10 +80,16 @@ export const unbanCommand: IAction = {
     description: "Allows any previously banned user to use GalacticaBot",
     man: "!unban @UserName (@AndSoOn...)",
     admin: true,
-    run: async (_args, msg, _bot) => {
+    run: async (_args, msg, bot) => {
         fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")
-            .then((strObj) => JSON.parse(strObj) as IBanData)
-            // Dedup the to-be banned users by those already in the ban list
+            .then((strObj) => {
+                if (strObj.length === 0) {
+                    return new BanData();
+                } else {
+                    return JSON.parse(strObj) as BanData;
+                }
+            })
+            // Remove the previously banned users from the ban list
             .then((data) => {
                 let users = msg.mentions.users;
                 for (let [snowflake, u] of users) {
@@ -85,8 +104,7 @@ export const unbanCommand: IAction = {
                 fs.writeFile(`${DATA_DIR}/${DATA_FILE}`, serData);
             })
             .catch((err) => {
-                //TODO: Change to use bot.log
-                console.error(`Ban action failed: ${err}`);
+                bot.log.error(`Ban action failed: ${err}`);
             });
     },
 };

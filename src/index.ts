@@ -13,6 +13,8 @@ import { ytCommand } from "./actions/yt";
 
 import { forbidMiddleware } from "./middleware/forbid";
 
+import { getConfig } from "./config";
+
 const CONFIG_PATH = path.resolve(__dirname, "..", "private", "config.json");
 
 const BOT_ACTIONS: IAction[] = [
@@ -28,16 +30,7 @@ const BOT_MIDDLEWARE: IMiddleware[] = [forbidMiddleware];
 
 (async function main() {
     console.log("Starting bot...");
-    const config = JSON.parse(await fs.readFile(CONFIG_PATH, "utf8"));
-    const bot = new DiscordBot({
-        ...config,
-        intents: [
-            Intents.FLAGS.GUILDS,
-            Intents.FLAGS.GUILD_MESSAGES,
-            Intents.FLAGS.DIRECT_MESSAGES,
-            Intents.FLAGS.GUILD_VOICE_STATES,
-        ],
-    });
+    const bot = new DiscordBot(await getConfig());
 
     process.on("uncaughtException", (err) => {
         bot.log.error("Uncaught exception!");

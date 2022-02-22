@@ -14,15 +14,22 @@ export class BanData {
     bans: Array<BanRecord> = [];
 
     constructor() {
-      return { bans: [] }
-    }    
+        return { bans: [] };
+    }
 }
 
-export const banCommand: IAction = {
-    name: "ban",
+export const forbidCommand: IAction = {
+    name: "forbid",
     description:
-        "Prevents all mentioned users from being able to use GalacticaBot",
-    man: "!ban @UserName (@AndSoOn...)",
+        "Prevents all mentioned users from being able to use the bot",
+    man:
+        "**Forbid Command:**\n" +
+        "`forbid`  `mentioned user` `...mentioned user`\n" +
+        "_forbids all mentioned users from using the bot_\n" +
+        "\n" +
+        "**Examples:**\n" +
+        "`forbid @UserOne` -- forbids 'UserOne'\n" +
+        "`forbid @UserOne @UserTwo @UserThree` -- forbids 'UserOne', 'UserTwo', and 'UserThree'",
     admin: true,
     init: (bot) => {
         fs.open(`${DATA_DIR}/${DATA_FILE}`, "a")
@@ -40,8 +47,8 @@ export const banCommand: IAction = {
                     return new BanData();
                 } else {
                     let banData = JSON.parse(strObj) as BanData;
-                    if (!banData.bans) banData.bans = []
-                    return banData
+                    if (!banData.bans) banData.bans = [];
+                    return banData;
                 }
             })
             // Dedup the to-be banned users by those already in the ban list
@@ -75,10 +82,17 @@ export const banCommand: IAction = {
     },
 };
 
-export const unbanCommand: IAction = {
-    name: "unban",
-    description: "Allows any previously banned user to use GalacticaBot",
-    man: "!unban @UserName (@AndSoOn...)",
+export const unforbidCommand: IAction = {
+    name: "unforbid",
+    description: "Allows any previously forbade user to use the bot",
+    man: 
+        "**Unforbid Command:**\n" +
+        "`unforbid`  `mentioned user` `...mentioned user`\n" +
+        "_allows previously forbade users to use the bot\n" +
+        "\n" +
+        "**Examples:**\n" +
+        "`unforbid @UserOne` -- Unforbids 'UserOne'\n" +
+        "`unforbid @UserOne @UserTwo @UserThree` -- Unforbids 'UserOne', 'UserTwo', and 'UserThree'",
     admin: true,
     run: async (_args, msg, bot) => {
         fs.readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")

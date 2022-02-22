@@ -1,8 +1,8 @@
 import { promises as fs } from "fs";
 import { IMiddleware } from "botiful";
-import { DATA_DIR, DATA_FILE, BanData } from "../actions/ban";
+import { DATA_DIR, DATA_FILE, BanData } from "../actions/forbid";
 
-export const banMiddleware: IMiddleware = {
+export const forbidMiddleware: IMiddleware = {
     apply: (_action, msg, bot) => {
         return fs
             .readFile(`${DATA_DIR}/${DATA_FILE}`, "utf-8")

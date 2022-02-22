@@ -15,7 +15,7 @@ export interface IAudioTrack
     id:       string;
     loudness: number;
 
-    getResource(): AudioResourceWithVolume;
+    getResource(): AudioResourceWithVolume | undefined;
 }
 interface TrackRequest {
     track: IAudioTrack;
@@ -138,11 +138,14 @@ export class GuildAudioConnection
         const next = this.queue.shift() as TrackRequest;
         this.connect(next.voxChannel.id);
 
-        this.current = new AudioStream(next.track, next.track.getResource(), next.voxChannel, next.msgChannel);
-        setTimeout(() => {
-            this.block = false;
-            this.startPlayback();
-        }, 0);
+        const nextResource = next.track.getResource();
+        if (nextResource) {
+            this.current = new AudioStream(next.track, nextResource, next.voxChannel, next.msgChannel);
+            setTimeout(() => {
+                this.block = false;
+                this.startPlayback();
+            }, 0);
+        }
     }
 
 
